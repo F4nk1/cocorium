@@ -12,7 +12,7 @@ import (
 type contextkey string
 
 const RequestIDKey contextkey = "requestID"
-const UserIDKey contextkey = "userID"
+const UserIdKey contextkey = "userID"
 
 var (
 	logger *zap.SugaredLogger
@@ -43,8 +43,8 @@ func Panicf(ctx context.Context, format string, args ...interface{}) {
 	WithContext(ctx).Panicf(format, args...)
 }
 
-func Dpanicf(ctx context.Context, format string, args ...interface{}) {
-	WithContext(ctx).Dpanicf(format, args...)
+func DPanicf(ctx context.Context, format string, args ...interface{}) {
+	WithContext(ctx).DPanicf(format, args...)
 }
 
 func Error(ctx context.Context, args ...interface{}) {
@@ -71,11 +71,9 @@ func Panic(ctx context.Context, args ...interface{}) {
 	WithContext(ctx).Panic(args...)
 }
 
-func Dpanic(ctx context.Context, args ...interface{}) {
-	WithContext(ctx).Dpanic(args...)
+func DPanic(ctx context.Context, args ...interface{}) {
+	WithContext(ctx).DPanic(args...)
 }
-
-
 
 func WithContext(ctx context.Context) *zap.SugaredLogger {
 	once.Do(func() {
@@ -87,8 +85,8 @@ func WithContext(ctx context.Context) *zap.SugaredLogger {
 		l = l.With("requestID", RequestIDKey)
 	}
 
-	if UserIDKey, ok := ctx.Value(UserIDKey).(string); ok {
-		l = l.With("userID", UserIDKey)
+	if UserIdKey, ok := ctx.Value(UserIdKey).(string); ok {
+		l = l.With("userID", UserIdKey)
 	}
 
 	return l
@@ -96,7 +94,7 @@ func WithContext(ctx context.Context) *zap.SugaredLogger {
 
 func initLogger() *zap.SugaredLogger {
 	config := zap.Config{
-		level: 	 zap.NewAtomicLevelAt(zap.DebugLevel),
+		Level: 	 zap.NewAtomicLevelAt(zap.DebugLevel),
 		Development: false,
 		Encoding:   "console",
 		EncoderConfig: zapcore.EncoderConfig{
@@ -109,7 +107,7 @@ func initLogger() *zap.SugaredLogger {
 			LineEnding: 	"\n",
 			EncodeLevel: 	zapcore.CapitalColorLevelEncoder,
 			EncodeTime: 	zapcore.ISO8601TimeEncoder,
-			EncondeDuration: zapcore.StringDurationEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
 			EncodeCaller:  zapcore.ShortCallerEncoder,
 		},
 		OutputPaths:      []string{"stderr"},

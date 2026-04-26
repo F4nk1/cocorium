@@ -3,15 +3,17 @@ package connection
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	_ "github.com/lib/pq"
+	"github.com/F4nk1/cocorium/src/tracer"
+	"github.com/F4nk1/cocorium/src/config"
 )
 
 type Connection struct {
-	Db *sql
+	Db *sql.DB
 }
 
 func NewConnection(ctx context.Context,config *config.Config) (*Connection, error)	{
-	tracer.Debug("Initializing database connection")
+	tracer.Debug(ctx,"Initializing database connection")
 
 	ConnectionString := config.GetConnectionString()
 
@@ -34,5 +36,5 @@ func NewConnection(ctx context.Context,config *config.Config) (*Connection, erro
 }
 
 func (c *Connection) Close() error {
-	return &c.Db.Close()
+	return c.Db.Close()
 }
