@@ -55,7 +55,8 @@ func (s *Server) buildHandler() http.Handler {
 	protected.HandleFunc("/users", s.listUsers).Methods(http.MethodGet)
 	protected.HandleFunc("/users/{id}", s.getUser).Methods(http.MethodGet)
 	protected.HandleFunc("/users/{id}", s.updateUser).Methods(http.MethodPut)
-	protected.HandleFunc("/users/{id}/activate", s.activateUser).Methods(http.MethodPost)
+	protected.HandleFunc("/users/{id}/delete", s.SoftDeleteUser).Methods(http.MethodDelete)
+	protected.HandleFunc("/users/{id}/undelete", s.unDeleteUser).Methods(http.MethodPatch)
 
 	protected.HandleFunc("/game/create", CreateGameHandler).Methods(http.MethodPost)
 	protected.HandleFunc("/game/action", ActionHandler).Methods(http.MethodPost)

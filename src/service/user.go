@@ -11,23 +11,15 @@ import (
 func (s *service) GetUser(ctx context.Context, id string) (*model.User, error) {
 	tracer.Debugf(ctx, "Querying database for user '%s' data", id)
 
-	query := `SELECT m.id, m.active,
-              s.id, s.first_names, s.paternal_surname, s.maternal_surname,
-              s.email, s.phone_number, s.github_username, s.university_id,
-              s.is_contestant,
-              r.id
-              FROM members m
-              JOIN students s ON m.student_id = s.id
-              JOIN roles r ON m.role_id = r.id
-              WHERE m.id = ? AND m.active = TRUE`
+	query := `SELECT u.id, u.username, u.active,
+              FROM users u
+              JOIN roles r ON u.role_id = r.id
+              WHERE u.username = $1 AND u.active = TRUE`
 
 	var user model.User
 	var role model.Role
 
-	err := s.conn.Db.QueryRow(query, id).Scan(&user.Id, &user.Active,
-		&user.Username, &user.Password,
-		&user.RoleId,
-		&role.Id)
+	err := s.conn.Db.QueryRow(query, id).Scan(&user.Id, &user.Username, &user.Active, &role.Id)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -46,15 +38,11 @@ func (s *service) GetUser(ctx context.Context, id string) (*model.User, error) {
 func (s *service) ListUsers(ctx context.Context) ([]model.User, error) {
 	tracer.Debugf(ctx, "Executing database query to fetch all active users")
 
-	query := `SELECT m.id, m.active,
-              s.id, s.first_names, s.paternal_surname, s.maternal_surname,
-              s.email, s.phone_number, s.github_username, s.university_id,
-              s.is_contestant,
+	query := `SELECT u.id, u.username, u.active,
               r.id
-              FROM members m
-              JOIN students s ON m.student_id = s.id
-              JOIN roles r ON m.role_id = r.id
-              WHERE m.active = TRUE`
+              FROM users u
+              JOIN roles r ON u.role_id = r.id
+              WHERE u.active = TRUE`
 
 	rows, err := s.conn.Db.Query(query)
 	if err != nil {
@@ -68,8 +56,7 @@ func (s *service) ListUsers(ctx context.Context) ([]model.User, error) {
 		var user model.User
 		var role model.Role
 
-		err = rows.Scan(&user.Id, &user.Active,
-			&role.Id)
+		err = rows.Scan(&user.Id, &user.Username, &user.Active, &role.Id)
 
 		if err != nil {
 			tracer.Errorf(ctx, "Database row scan failed during user listing: %s", err)
@@ -87,7 +74,7 @@ func (s *service) ListUsers(ctx context.Context) ([]model.User, error) {
 func (s *service) UpdateUser(ctx context.Context, user *model.User) error {
 	tracer.Debugf(ctx, "Updating user '%s'", user.Id)
 
-	query := `UPDATE users SET password = ?, role_id = ?, active = ? WHERE id = ?`
+	query := `UPDATE users SET password = $1, role_id = $2, active = $3 WHERE id = $4`
 	_, err := s.conn.Db.Exec(query, user.Password, user.RoleId, user.Active, user.Id)
 	if err != nil {
 		tracer.Errorf(ctx, "Database update failed for user %s: %s", user.Id, err)
@@ -98,16 +85,29 @@ func (s *service) UpdateUser(ctx context.Context, user *model.User) error {
 	return nil
 }
 
-func (s *service) ActivateUser(ctx context.Context, id string, isActive bool) error {
-	tracer.Debugf(ctx, "Activating user '%s' to '%t'", id, isActive)
+func (s *service) SoftDeleteUser(ctx context.Context, id int) error {
+	tracer.Debugf(ctx, "Soft deleting user '%d'", id)
 
-	query := `UPDATE users SET active = ? WHERE id = ?`
-	_, err := s.conn.Db.Exec(query, isActive, id)
+	query := `UPDATE users SET active = FALSE WHERE id = $1`
+	_, err := s.conn.Db.Exec(query, id)
 	if err != nil {
-		tracer.Errorf(ctx, "Database activation failed for user %s: %s", id, err)
+		tracer.Errorf(ctx, "Database soft delete failed for user %d: %s", id, err)
 		return err
 	}
 
-	tracer.Debugf(ctx, "Successfully activated user '%s'", id)
+	tracer.Debugf(ctx, "Successfully soft deleted user '%d'", id)
+	return nil
+}
+
+func (s *service) UnDeleteUser(ctx context.Context, id int) error {
+	tracer.Debugf(ctx, "Undeleting user '%d'", id)
+
+	query := `UPDATE users SET active = TRUE WHERE id = $1`
+	_, err := s.conn.Db.Exec(query, id)
+	if err != nil {
+		tracer.Errorf(ctx, "Database undelete failed for user %d: %s", id, err)
+		return err
+	}
+	tracer.Debugf(ctx, "Successfully undeleted user '%d'", id)
 	return nil
 }

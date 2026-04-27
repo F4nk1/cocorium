@@ -75,19 +75,46 @@ func (s *Server) updateUser(w http.ResponseWriter, r *http.Request) {
 	common.WriteSuccessResponse(w, http.StatusOK, fmt.Sprintf("User %s updated successfully", id))
 }
 
-func (s *Server) activateUser(w http.ResponseWriter, r *http.Request) {
+func (s *Server) SoftDeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := mux.Vars(r)["id"]
-	isActive, _ := strconv.ParseBool(r.URL.Query().Get("status"))
-
-	err := s.Service.ActivateUser(ctx, id, isActive)
+	userID, err := strconv.Atoi(id)
 	if err != nil {
-		tracer.Warnf(ctx, "Failed to activate user %s: %s", id, err)
-		common.WriteErrorMessage(w, common.NOT_FOUND_ERROR, "User not found")
+		tracer.Warnf(ctx, "Invalid user ID: %s", id)
+		common.WriteErrorResponse(w, common.INVALID_REQUEST_ERROR)
 		return
 	}
 
-	tracer.Infof(ctx, "User '%s' activated successfully", id)
+	err = s.Service.SoftDeleteUser(ctx, userID)
+	if err != nil {
+		tracer.Errorf(ctx, "Failed to soft delete user %d: %s", userID, err)
+		common.WriteErrorResponse(w, common.DATABASE_ERROR)
+		return
+	}
 
-	common.WriteSuccessResponse(w, http.StatusOK, fmt.Sprintf("User %s activated successfully", id))
+	tracer.Infof(ctx, "User '%d' soft deleted successfully", userID)
+
+	common.WriteSuccessResponse(w, http.StatusOK, fmt.Sprintf("User %d soft deleted successfully", userID))
+}
+
+func (s *Server) unDeleteUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := mux.Vars(r)["id"]
+	userID, err := strconv.Atoi(id)
+	if err != nil {
+		tracer.Warnf(ctx, "Invalid user ID: %s", id)
+		common.WriteErrorResponse(w, common.INVALID_REQUEST_ERROR)
+		return
+	}
+
+	err = s.Service.UnDeleteUser(ctx, userID)
+	if err != nil {
+		tracer.Errorf(ctx, "Failed to undelete user %d: %s", userID, err)
+		common.WriteErrorResponse(w, common.DATABASE_ERROR)
+		return
+	}
+
+	tracer.Infof(ctx, "User '%d' undeleted successfully", userID)
+
+	common.WriteSuccessResponse(w, http.StatusOK, fmt.Sprintf("User %d undeleted successfully", userID))
 }

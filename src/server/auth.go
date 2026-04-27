@@ -43,7 +43,6 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 	tracer.Infof(ctx, "Successful JWT login for user with Username '%s' from IP '%s'", request.User.Username, r.RemoteAddr)
 
-	// Generate JWT tokens
 	tokens, err := s.Auth.GenerateAuthToken(user.Username, user.RoleId)
 	if err != nil {
 		tracer.Errorf(ctx, "Failed to generate tokens for user '%s': %s", user.Id, err)
@@ -79,7 +78,6 @@ func (s *Server) refreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate new token pair
 	tokens, err := s.Auth.GenerateAuthToken(claims.UserId, claims.RoleId)
 	if err != nil {
 		tracer.Errorf(ctx, "Failed to generate new tokens for user '%s': %s", claims.UserId, err)

@@ -13,7 +13,8 @@ type Service interface {
 	GetUser(ctx context.Context, id string) (*model.User, error)
 	ListUsers(ctx context.Context) ([]model.User, error)
 	UpdateUser(ctx context.Context, user *model.User) error
-	ActivateUser(ctx context.Context, id string, isActive bool) error
+	SoftDeleteUser(ctx context.Context, id int) error
+	UnDeleteUser(ctx context.Context, id int) error
 
 	HasPermission(ctx context.Context, id string, permission string) (bool, error)
 }

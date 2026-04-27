@@ -1,0 +1,1 @@
+CREATE TYPE audit_action AS ENUM ('CREATE', 'UPDATE', 'DELETE');

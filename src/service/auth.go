@@ -15,14 +15,14 @@ func (s *service) Login(ctx context.Context, username string, password string) (
 
 	hashedPassword := hashPassword(password)
 
-	query := `SELECT u.username, u.active
+	query := `SELECT u.username, u.role_id, u.active
           FROM users u
           WHERE u.username = $1 AND u.password = $2 AND u.active = TRUE`
 
 	var user model.User
 
 	err := s.conn.Db.QueryRow(query, username, hashedPassword).Scan(
-		&user.Username, &user.Active)
+		&user.Username, &user.RoleId, &user.Active)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -34,6 +34,7 @@ func (s *service) Login(ctx context.Context, username string, password string) (
 	}
 
 	tracer.Debugf(ctx, "Database authentication successful for user '%s'", username)
+	user.Role = &model.Role{Id: user.RoleId}
 	return &user, nil
 }
 
