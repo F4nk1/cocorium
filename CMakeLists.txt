@@ -10,6 +10,8 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../beyota beyota_build)
 set(SOURCES
     src/main.cpp
     src/CocoriumLauncher.cpp
+    src/GameLibraryManager.cpp
+    src/UIManager.cpp
 )
 
 add_executable(CocoriumLauncher ${SOURCES})

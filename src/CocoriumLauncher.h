@@ -10,9 +10,6 @@ public:
 
     void Run();
 
-private:
-    void InitTheme();
-    void RenderUI();
 };
 
 #endif
