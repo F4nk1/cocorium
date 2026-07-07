@@ -1,0 +1,8 @@
+build/
+.cache/
+compile_commands.json
+imgui.ini
+*.log
+.vscode/
+.idea/
+.DS_Store
