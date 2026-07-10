@@ -25,8 +25,8 @@ CocoriumLauncher::CocoriumLauncher() {
         beyota_engine->log->Message("[Warning] No se pudo contactar al servidor en 127.0.0.1:7777");
     }
     
-    netClient.SetAuthCallback([](bool success, const std::string& message, const std::string& username) {
-        UIManager::GetInstance().HandleAuthResponse(success, message, username);
+    netClient.SetAuthCallback([](bool success, Cocorium::ErrorCode code, const std::string& message, const std::string& username) {
+        UIManager::GetInstance().HandleAuthResponse(success, code, message, username);
     });
     
     beyota_engine->graphics->Init("Cocorium Platform", 1280, 720, BEYOTA_SCR_ADAPTIVE, false, true);

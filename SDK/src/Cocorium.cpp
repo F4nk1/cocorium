@@ -1,4 +1,5 @@
 #include "CocoriumSDK/Cocorium.h"
+#include "Logger.h"
 #include <iostream>
 
 using json = nlohmann::json;
@@ -14,13 +15,13 @@ namespace Cocorium {
 
     bool Client::Initialize(const std::string& serverHost, int port) {
         if (enet_initialize() != 0) {
-            std::cerr << "[Cocorium SDK] Error inicializando ENet.\n";
+            Cocorium::Logger::Error("SDK", "Error inicializando ENet.");
             return false;
         }
 
         host = enet_host_create(NULL, 1, 2, 0, 0);
         if (host == NULL) {
-            std::cerr << "[Cocorium SDK] Error creando el host ENet.\n";
+            Cocorium::Logger::Error("SDK", "Error creando el host ENet.");
             enet_deinitialize();
             return false;
         }
@@ -31,7 +32,7 @@ namespace Cocorium {
 
         peer = enet_host_connect(host, &address, 2, 0);
         if (peer == NULL) {
-            std::cerr << "[Cocorium SDK] No hay peers disponibles para conectar.\n";
+            Cocorium::Logger::Error("SDK", "No hay peers disponibles para conectar.");
             enet_host_destroy(host);
             host = nullptr;
             enet_deinitialize();
@@ -41,10 +42,10 @@ namespace Cocorium {
         ENetEvent event;
         // Esperar hasta 500ms para confirmar la conexión inicial
         if (enet_host_service(host, &event, 500) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
-            std::cout << "[Cocorium SDK] Conectado exitosamente al servidor.\n";
+            Cocorium::Logger::Info("SDK", "Conectado exitosamente al servidor.");
             return true;
         } else {
-            std::cerr << "[Cocorium SDK] Conexión al servidor fallida (Timeout).\n";
+            Cocorium::Logger::Error("SDK", "Conexión al servidor fallida (Timeout).");
             enet_peer_reset(peer);
             enet_host_destroy(host);
             host = nullptr;
@@ -86,6 +87,7 @@ namespace Cocorium {
             if (type == "LOGIN_RESPONSE" || type == "REGISTER_RESPONSE") {
                 bool success = j.value("success", false);
                 std::string message = j.value("message", "");
+                Cocorium::ErrorCode code = static_cast<Cocorium::ErrorCode>(j.value("code", 0));
 
                 if (success && type == "LOGIN_RESPONSE") {
                     currentUser = j.value("username", "");
@@ -94,16 +96,16 @@ namespace Cocorium {
 
                 // Si el Launcher registró un callback, lo invocamos de inmediato
                 if (onAuthResponse) {
-                    onAuthResponse(success, message, j.value("username", ""));
+                    onAuthResponse(success, code, message, j.value("username", ""));
                 }
             }
         } catch (const std::exception& e) {
-            std::cerr << "[Cocorium SDK] Error parseando JSON de respuesta: " << e.what() << "\n";
+            Cocorium::Logger::Error("SDK", std::string("Error parseando JSON de respuesta: ") + e.what());
         }
     }
 
     void Client::HandleDisconnect() {
-        std::cout << "[Cocorium SDK] El servidor cerró la conexión.\n";
+        Cocorium::Logger::Info("SDK", "El servidor cerró la conexión.");
         loggedIn = false;
         currentUser = "";
         if (peer) {
@@ -169,7 +171,7 @@ namespace Cocorium {
         }
         
         enet_deinitialize();
-        std::cout << "[Cocorium SDK] Recursos de red liberados.\n";
+        Cocorium::Logger::Info("SDK", "Recursos de red liberados.");
     }
 
     void Client::SetAuthCallback(AuthCallback callback) {

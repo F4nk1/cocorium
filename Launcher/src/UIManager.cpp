@@ -11,7 +11,7 @@
 
 extern Cocorium::Client netClient;
 
-void UIManager::HandleAuthResponse(bool success, const std::string& message, const std::string& username) {
+void UIManager::HandleAuthResponse(bool success, Cocorium::ErrorCode code, const std::string& message, const std::string& username) {
     login_pending = false;
     if (success) {
         current_state = AppState::MainUI;

@@ -3,13 +3,14 @@
 #include <functional>
 #include <enet/enet.h>
 #include <nlohmann/json.hpp>
+#include "ErrorCodes.h"
 
 namespace Cocorium {
 
     class Client {
     public:
         // Definimos el tipo de callback para las respuestas del servidor
-        using AuthCallback = std::function<void(bool success, const std::string& message, const std::string& username)>;
+        using AuthCallback = std::function<void(bool success, Cocorium::ErrorCode code, const std::string& message, const std::string& username)>;
 
         Client();
         ~Client();

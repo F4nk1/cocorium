@@ -2,6 +2,7 @@
 #define UI_MANAGER_H
 
 #include <string>
+#include <CocoriumSDK/Cocorium.h>
 
 enum class AppState {
     Login,
@@ -19,7 +20,7 @@ public:
     void InitTheme();
     void Render();
     
-    void HandleAuthResponse(bool success, const std::string& message, const std::string& username);
+    void HandleAuthResponse(bool success, Cocorium::ErrorCode code, const std::string& message, const std::string& username);
 
 private:
     UIManager() = default;

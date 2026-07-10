@@ -13,7 +13,7 @@ FetchContent_MakeAvailable(bcrypt_cpp)
 
 # ... (tus otras dependencias como enet y nlohmann_json) ...
 
-add_executable(CocoriumServer src/main.cpp src/PostgreSQLDatabase.cpp src/ServerConfigManager.cpp)
+add_executable(CocoriumServer src/main.cpp src/PostgreSQLDatabase.cpp src/ServerConfigManager.cpp ../Common/src/Logger.cpp)
 
 # 2. Enlazar bcrypt al target del servidor (añadimos 'bcrypt' a la lista)
 target_link_libraries(CocoriumServer PRIVATE enet pqxx pq bcrypt)
@@ -22,3 +22,4 @@ target_link_libraries(CocoriumServer PRIVATE enet pqxx pq bcrypt)
 target_include_directories(CocoriumServer PRIVATE ${CMAKE_BINARY_DIR}/_deps/enet-src/include)
 target_include_directories(CocoriumServer PRIVATE ${CMAKE_BINARY_DIR}/_deps/nlohmann_json-src/include)
 target_include_directories(CocoriumServer PRIVATE ${CMAKE_BINARY_DIR}/_deps/bcrypt_cpp-src/include)
+target_include_directories(CocoriumServer PRIVATE ../Common/include)

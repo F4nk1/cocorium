@@ -1,5 +1,7 @@
 #include "PostgreSQLDatabase.h"
 #include "ServerConfigManager.h"
+#include "ErrorCodes.h"
+#include "Logger.h"
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -17,10 +19,11 @@ struct Session {
 };
 std::unordered_map<std::string, Session> active_sessions; // user -> session
 
-void SendLoginResponse(ENetPeer* peer, bool success, const std::string& message, const std::string& username) {
+void SendLoginResponse(ENetPeer* peer, bool success, Cocorium::ErrorCode code, const std::string& message, const std::string& username) {
     json res;
     res["type"] = "LOGIN_RESPONSE";
     res["success"] = success;
+    res["code"] = static_cast<uint32_t>(code);
     res["message"] = message;
     res["username"] = username;
     
@@ -30,7 +33,8 @@ void SendLoginResponse(ENetPeer* peer, bool success, const std::string& message,
 }
 
 int main() {
-    std::cout << "--- Cocorium Server Starting ---\n";
+    Cocorium::Logger::Init("server.log");
+    Cocorium::Logger::Info("System", "--- Cocorium Server Starting ---");
     
     // 1. Cargar Configuración
     CocoriumServer::ServerConfigManager config;
@@ -40,14 +44,14 @@ int main() {
     // 2. Conectar a Base de Datos
     CocoriumServer::PostgreSQLDatabase db;
     if (!db.Connect(config.GetConnectionString())) {
-        std::cerr << "Failed to connect to database. Exiting.\n";
+        Cocorium::Logger::Critical("Database", "Failed to connect to database. Exiting.");
         return EXIT_FAILURE;
     }
-    std::cout << "[DB] Connected to PostgreSQL at " << config.db_host << "\n";
+    Cocorium::Logger::Info("Database", "Connected to PostgreSQL at " + config.db_host);
     
     // 3. Iniciar Red (ENet)
     if (enet_initialize() != 0) {
-        std::cerr << "[Net] Error al inicializar ENet.\n";
+        Cocorium::Logger::Critical("Network", "Error al inicializar ENet.");
         return EXIT_FAILURE;
     }
     
@@ -57,18 +61,18 @@ int main() {
     
     ENetHost* server = enet_host_create(&address, 32, 2, 0, 0);
     if (!server) {
-        std::cerr << "[Net] Error al crear el host del servidor ENet.\n";
+        Cocorium::Logger::Critical("Network", "Error al crear el host del servidor ENet.");
         return EXIT_FAILURE;
     }
     
-    std::cout << "[Net] Cocorium Server escuchando en el puerto " << port << "...\n";
+    Cocorium::Logger::Info("Network", "Cocorium Server escuchando en el puerto " + std::to_string(port) + "...");
     
     ENetEvent event;
     while (true) {
         while (enet_host_service(server, &event, 10) > 0) {
             switch (event.type) {
                 case ENET_EVENT_TYPE_CONNECT:
-                    std::cout << "[Net] Conexion entrante desde " << event.peer->address.host << ":" << event.peer->address.port << "\n";
+                    Cocorium::Logger::Info("Network", "Conexion entrante desde " + std::to_string(event.peer->address.host) + ":" + std::to_string(event.peer->address.port));
                     event.peer->data = nullptr;
                     break;
                     
@@ -82,16 +86,18 @@ int main() {
                             
                             // Verificar sesión activa
                             if (active_sessions.find(user) != active_sessions.end()) {
-                                SendLoginResponse(event.peer, false, "Usuario ya autenticado en otra sesión.", user);
+                                Cocorium::Logger::Warn("Auth", "Intento de login para usuario ya autenticado: " + user);
+                                SendLoginResponse(event.peer, false, Cocorium::ErrorCode::AUTH_USER_ALREADY_LOGGED_IN, "Usuario ya autenticado en otra sesión.", user);
                             } else {
                                 // Verificar BD
                                 if (db.ValidateUser(user, pass)) {
                                     active_sessions[user] = {event.peer, "token_123", ""};
                                     event.peer->data = new std::string(user); // Asociar peer al username
-                                    SendLoginResponse(event.peer, true, "Login Exitoso", user);
-                                    std::cout << "[Auth] Usuario " << user << " inició sesión.\n";
+                                    SendLoginResponse(event.peer, true, Cocorium::ErrorCode::SUCCESS, "Login Exitoso", user);
+                                    Cocorium::Logger::Info("Auth", "Usuario " + user + " inició sesión.");
                                 } else {
-                                    SendLoginResponse(event.peer, false, "Contraseña incorrecta o usuario no existe.", user);
+                                    Cocorium::Logger::Warn("Auth", "Credenciales inválidas para usuario: " + user);
+                                    SendLoginResponse(event.peer, false, Cocorium::ErrorCode::AUTH_INVALID_CREDENTIALS, "Contraseña incorrecta o usuario no existe.", user);
                                 }
                             }
                         }
@@ -101,14 +107,15 @@ int main() {
                             
                             if (db.RegisterUser(user, pass)) {
                                 // Registro exitoso, responder como LOGIN_RESPONSE para que la UI use el mismo callback
-                                SendLoginResponse(event.peer, true, "Registro Exitoso! Por favor inicia sesión.", user);
-                                std::cout << "[Auth] Usuario registrado: " << user << "\n";
+                                SendLoginResponse(event.peer, true, Cocorium::ErrorCode::SUCCESS, "Registro Exitoso! Por favor inicia sesión.", user);
+                                Cocorium::Logger::Info("Auth", "Usuario registrado exitosamente: " + user);
                             } else {
-                                SendLoginResponse(event.peer, false, "El nombre de usuario ya está en uso.", user);
+                                Cocorium::Logger::Warn("Auth", "Fallo al registrar, usuario ya existe: " + user);
+                                SendLoginResponse(event.peer, false, Cocorium::ErrorCode::AUTH_USER_ALREADY_EXISTS, "El nombre de usuario ya está en uso.", user);
                             }
                         }
                     } catch (std::exception& e) {
-                        std::cerr << "[Net] Error procesando paquete: " << e.what() << "\n";
+                        Cocorium::Logger::Error("Network", std::string("Error procesando paquete: ") + e.what());
                     }
                     enet_packet_destroy(event.packet);
                     break;
@@ -118,7 +125,7 @@ int main() {
                     if (event.peer->data) {
                         std::string* user = (std::string*)event.peer->data;
                         active_sessions.erase(*user);
-                        std::cout << "[Auth] Usuario " << *user << " desconectado.\n";
+                        Cocorium::Logger::Info("Auth", "Usuario " + *user + " desconectado.");
                         delete user;
                         event.peer->data = nullptr;
                     }
