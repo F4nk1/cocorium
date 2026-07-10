@@ -6,3 +6,4 @@ imgui.ini
 .vscode/
 .idea/
 .DS_Store
+*.db

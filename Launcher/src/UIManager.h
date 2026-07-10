@@ -18,6 +18,8 @@ public:
 
     void InitTheme();
     void Render();
+    
+    void HandleAuthResponse(bool success, const std::string& message, const std::string& username);
 
 private:
     UIManager() = default;

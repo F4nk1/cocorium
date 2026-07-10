@@ -9,6 +9,24 @@
 #include "fonts/IconsFontAwesome6.h"
 #include <BeyotaEngine.h>
 
+extern Cocorium::Client netClient;
+
+void UIManager::HandleAuthResponse(bool success, const std::string& message, const std::string& username) {
+    login_pending = false;
+    if (success) {
+        current_state = AppState::MainUI;
+        login_error_msg = "";
+        auto& config = ConfigManager::GetInstance();
+        if (config.auto_login) {
+            config.saved_username = input_username;
+            config.saved_password = input_password;
+            config.Save();
+        }
+    } else {
+        login_error_msg = message;
+    }
+}
+
 void UIManager::InitTheme() {
     ThemeManager::ApplyTheme();
 }
@@ -21,23 +39,6 @@ void UIManager::Render() {
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
     
     ImGui::Begin("Cocorium OS", nullptr, window_flags);
-    
-    if (Cocorium::HasLoginResponse()) {
-        login_pending = false;
-        Cocorium::LoginResult result = Cocorium::GetLastLoginResult();
-        if (result.success) {
-            current_state = AppState::MainUI;
-            login_error_msg = "";
-            auto& config = ConfigManager::GetInstance();
-            if (config.auto_login) {
-                config.saved_username = input_username;
-                config.saved_password = input_password;
-                config.Save();
-            }
-        } else {
-            login_error_msg = result.message;
-        }
-    }
     
     if (current_state == AppState::Login) {
         RenderLoginScreen();
@@ -60,7 +61,7 @@ void UIManager::RenderLoginScreen() {
         if (config.auto_login && !config.saved_username.empty() && !config.saved_password.empty()) {
             strncpy(input_username, config.saved_username.c_str(), sizeof(input_username) - 1);
             strncpy(input_password, config.saved_password.c_str(), sizeof(input_password) - 1);
-            Cocorium::RequestLogin(config.saved_username, config.saved_password);
+            netClient.RequestLogin(config.saved_username, config.saved_password);
             login_pending = true;
             login_error_msg = "";
         }
@@ -108,7 +109,7 @@ void UIManager::RenderLoginScreen() {
             std::string user(input_username);
             std::string pass(input_password);
             if (!user.empty() && !pass.empty()) {
-                Cocorium::RequestLogin(user, pass);
+                netClient.RequestLogin(user, pass);
                 login_pending = true;
                 login_error_msg = "";
             } else {
@@ -173,7 +174,7 @@ void UIManager::RenderRegisterScreen() {
             std::string user(input_username);
             std::string pass(input_password);
             if (!user.empty() && !pass.empty()) {
-                Cocorium::RequestRegister(user, pass);
+                netClient.RequestRegister(user, pass);
                 login_pending = true;
                 login_error_msg = "";
             } else {
@@ -193,7 +194,7 @@ void UIManager::RenderRegisterScreen() {
 }
 
 void UIManager::RenderMainUI() {
-    if (!Cocorium::IsLoggedIn()) {
+    if (!netClient.IsLoggedIn()) {
         current_state = AppState::Login;
         return;
     }
@@ -243,7 +244,7 @@ void UIManager::RenderMainUI() {
         config.saved_username = "";
         config.saved_password = "";
         config.Save();
-        Cocorium::Logout();
+        netClient.Logout();
         attempt_auto_login = false; // Prevent immediate re-login
     }
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Cerrar Sesión");

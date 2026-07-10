@@ -1,4 +1,5 @@
-#include "DatabaseManager.h"
+#include "PostgreSQLDatabase.h"
+#include "ServerConfigManager.h"
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -32,31 +33,17 @@ int main() {
     std::cout << "--- Cocorium Server Starting ---\n";
     
     // 1. Cargar Configuración
-    int port = 7777;
-    std::string db_path = "cocorium_prod.db";
-    
-    std::ifstream config_file("server_config.json");
-    if (config_file.is_open()) {
-        try {
-            json config;
-            config_file >> config;
-            if (config.contains("port")) port = config["port"];
-            if (config.contains("db_path")) db_path = config["db_path"];
-            std::cout << "[Config] Loaded from server_config.json\n";
-        } catch (...) {
-            std::cerr << "[Config] Error parsing server_config.json, using defaults.\n";
-        }
-    } else {
-        std::cout << "[Config] No server_config.json found, using defaults.\n";
-    }
+    CocoriumServer::ServerConfigManager config;
+    config.LoadConfig();
+    int port = config.server_port;
 
     // 2. Conectar a Base de Datos
-    CocoriumServer::SQLiteDatabase db;
-    if (!db.Connect(db_path)) {
+    CocoriumServer::PostgreSQLDatabase db;
+    if (!db.Connect(config.GetConnectionString())) {
         std::cerr << "Failed to connect to database. Exiting.\n";
         return EXIT_FAILURE;
     }
-    std::cout << "[DB] Connected to " << db_path << "\n";
+    std::cout << "[DB] Connected to PostgreSQL at " << config.db_host << "\n";
     
     // 3. Iniciar Red (ENet)
     if (enet_initialize() != 0) {
@@ -114,7 +101,7 @@ int main() {
                             
                             if (db.RegisterUser(user, pass)) {
                                 // Registro exitoso, responder como LOGIN_RESPONSE para que la UI use el mismo callback
-                                SendLoginResponse(event.peer, false, "Registro Exitoso! Por favor inicia sesión.", user);
+                                SendLoginResponse(event.peer, true, "Registro Exitoso! Por favor inicia sesión.", user);
                                 std::cout << "[Auth] Usuario registrado: " << user << "\n";
                             } else {
                                 SendLoginResponse(event.peer, false, "El nombre de usuario ya está en uso.", user);

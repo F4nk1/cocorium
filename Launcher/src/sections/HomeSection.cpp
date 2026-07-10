@@ -2,11 +2,13 @@
 #include <imgui.h>
 #include <CocoriumSDK/Cocorium.h>
 
+extern Cocorium::Client netClient;
+
 void HomeSection::OnInit() {}
 void HomeSection::OnUpdate() {}
 
 void HomeSection::OnRender() {
-    ImGui::Text("Bienvenido de nuevo%s", Cocorium::IsLoggedIn() ? (", " + Cocorium::GetUsername()).c_str() : "");
+    ImGui::Text("Bienvenido de nuevo%s", netClient.IsLoggedIn() ? (", " + netClient.GetUsername()).c_str() : "");
     ImGui::Separator();
     
     ImGui::Spacing(); ImGui::Spacing();

@@ -1,34 +1,49 @@
 #pragma once
-
 #include <string>
+#include <functional>
+#include <enet/enet.h>
+#include <nlohmann/json.hpp>
 
 namespace Cocorium {
 
-    struct LoginResult {
-        bool success;
-        std::string message;
+    class Client {
+    public:
+        // Definimos el tipo de callback para las respuestas del servidor
+        using AuthCallback = std::function<void(bool success, const std::string& message, const std::string& username)>;
+
+        Client();
+        ~Client();
+
+        // Gestión de conexión
+        bool Initialize(const std::string& host, int port);
+        void PollEvents(); // Esto se llamará en el loop principal del Launcher
+        void Shutdown();
+
+        // Acciones
+        void RequestLogin(const std::string& username, const std::string& password);
+        void RequestRegister(const std::string& username, const std::string& password);
+        void Logout();
+
+        // Asignación de Callbacks (El Launcher inyectará sus funciones aquí)
+        void SetAuthCallback(AuthCallback callback);
+
+        // Getters de estado
+        bool IsLoggedIn() const;
+        std::string GetUsername() const;
+
+    private:
+        ENetHost* host;
+        ENetPeer* peer;
+        
+        bool loggedIn;
+        std::string currentUser;
+        
+        AuthCallback onAuthResponse;
+
+        // Métodos internos
+        void HandleReceive(ENetPacket* packet);
+        void HandleDisconnect();
+        void SendJSON(const nlohmann::json& j);
     };
 
-    // Inicializa la conexión local con el servidor/launcher
-    bool Initialize(const std::string& host = "127.0.0.1", int port = 7777);
-    
-    // Procesa eventos de red (debe llamarse en el game loop)
-    void PollEvents();
-
-    // Cierra la conexión
-    void Shutdown();
-
-    // Intenta iniciar sesión
-    void RequestLogin(const std::string& username, const std::string& password);
-    void Logout();
-
-    // Intenta registrar una nueva cuenta
-    void RequestRegister(const std::string& username, const std::string& password);
-
-    // Obtiene el estado del último intento de login
-    bool HasLoginResponse();
-    LoginResult GetLastLoginResult();
-
-    std::string GetUsername();
-    bool IsLoggedIn();
 }

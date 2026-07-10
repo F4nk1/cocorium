@@ -13,15 +13,21 @@
 #include <SDL.h>
 #include "fonts/IconsFontAwesome6.h"
 
+Cocorium::Client netClient;
+
 CocoriumLauncher::CocoriumLauncher() {
     beyota_engine->Init();
     beyota_engine->log->OpenLogFile("cocorium_platform.log");
     beyota_engine->log->Message("--- COCORIUM PLATFORM LAUNCHED ---");
     
     // Iniciar SDK (conexión de red)
-    if (!Cocorium::Initialize("127.0.0.1", 7777)) {
+    if (!netClient.Initialize("127.0.0.1", 7777)) {
         beyota_engine->log->Message("[Warning] No se pudo contactar al servidor en 127.0.0.1:7777");
     }
+    
+    netClient.SetAuthCallback([](bool success, const std::string& message, const std::string& username) {
+        UIManager::GetInstance().HandleAuthResponse(success, message, username);
+    });
     
     beyota_engine->graphics->Init("Cocorium Platform", 1280, 720, BEYOTA_SCR_ADAPTIVE, false, true);
     beyota_engine->graphics->SetBackdropColor(230, 240, 255, 255);
@@ -68,7 +74,7 @@ CocoriumLauncher::CocoriumLauncher() {
 CocoriumLauncher::~CocoriumLauncher() {
     SDL_StopTextInput();
     ConfigManager::GetInstance().Save();
-    Cocorium::Shutdown();
+    netClient.Shutdown();
 }
 
 void CocoriumLauncher::Run() {
@@ -76,7 +82,7 @@ void CocoriumLauncher::Run() {
         beyota_engine->system->EventUpdate();
         
         // Procesar mensajes de red del Servidor
-        Cocorium::PollEvents();
+        netClient.PollEvents();
         
         UIManager::GetInstance().Render();
         

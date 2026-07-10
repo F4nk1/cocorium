@@ -22,16 +22,4 @@ public:
     virtual bool RegisterUser(const std::string& username, const std::string& password) = 0;
 };
 
-class SQLiteDatabase : public DatabaseManager {
-private:
-    ::sqlite3* db = nullptr;
-public:
-    ~SQLiteDatabase() override;
-    
-    bool Connect(const std::string& connectionString) override;
-    void Disconnect() override;
-    bool ValidateUser(const std::string& username, const std::string& password) override;
-    bool RegisterUser(const std::string& username, const std::string& password) override;
-};
-
 } // namespace CocoriumServer
