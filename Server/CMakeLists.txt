@@ -9,7 +9,13 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/trusch/libbcrypt.git
     GIT_TAG        master
 )
+cmake_policy(PUSH)
+if(POLICY CMP0218)
+    cmake_policy(SET CMP0218 OLD)
+endif()
+set(CMAKE_WARN_DEPRECATED OFF)
 FetchContent_MakeAvailable(bcrypt_cpp)
+cmake_policy(POP)
 
 # ... (tus otras dependencias como enet y nlohmann_json) ...
 
